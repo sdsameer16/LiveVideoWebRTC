@@ -241,6 +241,13 @@ export default function Join({ roomId, isCaller }) {
         }}>
           Room: <strong>{roomId}</strong>
         </p>
+        <p style={{
+          color: 'rgba(255, 255, 255, 0.6)',
+          margin: '5px 0 0 0',
+          fontSize: '0.9rem'
+        }}>
+          🌐 Server: livevideowebrtc.onrender.com
+        </p>
       </div>
 
       {/* Status */}

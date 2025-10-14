@@ -1,6 +1,6 @@
 import { io } from 'socket.io-client';
 
-const socket = io('http://localhost:4000', {
+const socket = io('https://livevideowebrtc.onrender.com', {
   transports: ['websocket', 'polling'], // Fallback to polling if websocket fails
   timeout: 20000,
   forceNew: true,

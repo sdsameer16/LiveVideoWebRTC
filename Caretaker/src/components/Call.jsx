@@ -163,7 +163,7 @@ export default function Call({ roomId, isCaller }) {
     formData.append('startedAt', new Date().toISOString());
 
     try {
-      const response = await fetch('/api/uploadRecording', {
+      const response = await fetch('https://livevideowebrtc.onrender.com/api/uploadRecording', {
         method: 'POST',
         body: formData
       });
@@ -182,7 +182,7 @@ export default function Call({ roomId, isCaller }) {
 
   async function fetchRecordings() {
     try {
-      const response = await fetch('/api/recordings');
+      const response = await fetch('https://livevideowebrtc.onrender.com/api/recordings');
       const recordings = await response.json();
       setRecordings(recordings);
     } catch (error) {
@@ -230,6 +230,13 @@ export default function Call({ roomId, isCaller }) {
         }}>
           🎥 Live Streaming Studio
         </h1>
+        <p style={{
+          color: 'rgba(255, 255, 255, 0.7)',
+          margin: '0 0 20px 0',
+          fontSize: '1rem'
+        }}>
+          🌐 Connected to: livevideowebrtc.onrender.com
+        </p>
         <div style={{
           display: 'flex',
           justifyContent: 'center',
