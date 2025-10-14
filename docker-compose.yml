@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  # Backend API and WebSocket server
+  server:
+    build: ./server
+    ports:
+      - "4000:4000"
+    environment:
+      - MONGO_URI=${MONGO_URI}
+      - PORT=4000
+    depends_on:
+      - mongo
+    volumes:
+      - server_data:/app/uploads
+    restart: unless-stopped
+
+  # MongoDB database
+  mongo:
+    image: mongo:7.0
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD}
+    volumes:
+      - mongo_data:/data/db
+    restart: unless-stopped
+
+  # Caretaker frontend (live streamer interface)
+  caretaker:
+    build: ./Caretaker
+    ports:
+      - "3001:80"
+    environment:
+      - REACT_APP_API_URL=http://localhost:4000
+    depends_on:
+      - server
+    restart: unless-stopped
+
+  # Parent frontend (viewer interface)
+  parent:
+    build: ./parent
+    ports:
+      - "3002:80"
+    environment:
+      - REACT_APP_API_URL=http://localhost:4000
+    depends_on:
+      - server
+    restart: unless-stopped
+
+volumes:
+  mongo_data:
+  server_data:
+
+networks:
+  default:
+    name: livevideo_network
