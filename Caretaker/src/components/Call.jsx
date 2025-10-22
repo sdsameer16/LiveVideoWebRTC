@@ -205,26 +205,27 @@ export default function Call({ roomId, isCaller }) {
 
   return (
     <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      padding: '20px',
-      fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+      height: '100vh',
+      background: 'transparent',
+      padding: '15px',
+      fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+      overflow: 'auto'
     }}>
       {/* Header */}
       <div style={{
         background: 'rgba(255, 255, 255, 0.1)',
         backdropFilter: 'blur(10px)',
-        borderRadius: '20px',
-        padding: '30px',
-        marginBottom: '30px',
+        borderRadius: '15px',
+        padding: '20px',
+        marginBottom: '20px',
         border: '1px solid rgba(255, 255, 255, 0.2)',
         boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
         textAlign: 'center'
       }}>
         <h1 style={{
           color: 'white',
-          margin: '0 0 15px 0',
-          fontSize: '3rem',
+          margin: '0 0 10px 0',
+          fontSize: '2rem',
           fontWeight: '700',
           textShadow: '0 2px 4px rgba(0, 0, 0, 0.3)'
         }}>
@@ -232,15 +233,15 @@ export default function Call({ roomId, isCaller }) {
         </h1>
         <p style={{
           color: 'rgba(255, 255, 255, 0.7)',
-          margin: '0 0 20px 0',
-          fontSize: '1rem'
+          margin: '0 0 15px 0',
+          fontSize: '0.9rem'
         }}>
           🌐 Connected to: livevideowebrtc.onrender.com
         </p>
         <div style={{
           display: 'flex',
           justifyContent: 'center',
-          gap: '40px',
+          gap: '20px',
           flexWrap: 'wrap'
         }}>
           <div style={{
@@ -282,26 +283,27 @@ export default function Call({ roomId, isCaller }) {
       </div>
 
       {/* Main Content */}
-      <div style={{
+      <div className="main-content" style={{
         display: 'grid',
-        gridTemplateColumns: '1fr 400px',
-        gap: '30px',
-        maxWidth: '1400px',
-        margin: '0 auto'
+        gridTemplateColumns: '2fr 1fr',
+        gap: '20px',
+        height: 'calc(100vh - 200px)'
       }}>
-        {/* Video Preview */}
+        {/* Video Preview - Larger Area */}
         <div style={{
           background: 'rgba(255, 255, 255, 0.1)',
           backdropFilter: 'blur(10px)',
-          borderRadius: '20px',
-          padding: '25px',
+          borderRadius: '15px',
+          padding: '20px',
           border: '1px solid rgba(255, 255, 255, 0.2)',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+          display: 'flex',
+          flexDirection: 'column'
         }}>
           <h3 style={{
             color: 'white',
-            margin: '0 0 20px 0',
-            fontSize: '1.5rem',
+            margin: '0 0 15px 0',
+            fontSize: '1.3rem',
             fontWeight: '600'
           }}>
             📹 Your Live Stream
@@ -312,7 +314,9 @@ export default function Call({ roomId, isCaller }) {
             background: '#000',
             borderRadius: '15px',
             overflow: 'hidden',
-            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)'
+            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)',
+            flex: 1,
+            minHeight: '400px'
           }}>
             <video 
               ref={localVideoRef} 
@@ -321,9 +325,7 @@ export default function Call({ roomId, isCaller }) {
               playsInline 
               style={{ 
                 width: '100%', 
-                height: 'auto',
-                minHeight: '300px',
-                maxHeight: '500px',
+                height: '100%',
                 objectFit: 'cover',
                 display: 'block'
               }} 
@@ -356,215 +358,151 @@ export default function Call({ roomId, isCaller }) {
           </div>
         </div>
 
-        {/* Control Panel */}
+        {/* Controls Panel - Right Side */}
         <div style={{
           display: 'flex',
           flexDirection: 'column',
-          gap: '20px'
+          gap: '15px'
         }}>
           {/* Recording Controls */}
           <div style={{
             background: 'rgba(255, 255, 255, 0.1)',
             backdropFilter: 'blur(10px)',
-            borderRadius: '20px',
-            padding: '25px',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
-          }}>
-            <h3 style={{
-              color: 'white',
-              margin: '0 0 20px 0',
-              fontSize: '1.3rem',
-              fontWeight: '600'
-            }}>
-              🎬 Recording Controls
-            </h3>
-            
-            <button 
-              onClick={stopRecording}
-              disabled={!isRecording}
-              style={{
-                width: '100%',
-                padding: '15px',
-                fontSize: '1.1rem',
-                fontWeight: '600',
-                backgroundColor: isRecording ? '#f44336' : '#666',
-                color: 'white',
-                border: 'none',
-                borderRadius: '15px',
-                cursor: isRecording ? 'pointer' : 'not-allowed',
-                marginBottom: '15px',
-                transition: 'all 0.3s ease',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '10px'
-              }}
-            >
-              {isRecording ? '⏹️ Stop & Save Recording' : '⏸️ Recording Stopped'}
-            </button>
-            
-            <button 
-              onClick={fetchRecordings}
-              style={{
-                width: '100%',
-                padding: '12px',
-                fontSize: '1rem',
-                fontWeight: '600',
-                backgroundColor: '#4CAF50',
-                color: 'white',
-                border: 'none',
-                borderRadius: '15px',
-                cursor: 'pointer',
-                transition: 'all 0.3s ease',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px'
-              }}
-              onMouseOver={(e) => e.target.style.backgroundColor = '#45a049'}
-              onMouseOut={(e) => e.target.style.backgroundColor = '#4CAF50'}
-            >
-              🔄 Refresh Recordings
-            </button>
-          </div>
-
-          {/* Stream Stats */}
-          <div style={{
-            background: 'rgba(255, 255, 255, 0.1)',
-            backdropFilter: 'blur(10px)',
-            borderRadius: '20px',
-            padding: '25px',
+            borderRadius: '15px',
+            padding: '20px',
             border: '1px solid rgba(255, 255, 255, 0.2)',
             boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
           }}>
             <h3 style={{
               color: 'white',
               margin: '0 0 15px 0',
-              fontSize: '1.3rem',
+              fontSize: '1.2rem',
               fontWeight: '600'
             }}>
-              📊 Stream Statistics
+              🎬 Recording Controls
             </h3>
             
-            <div style={{ color: 'rgba(255, 255, 255, 0.8)' }}>
-              <p style={{ margin: '8px 0', fontSize: '1rem' }}>
-                👥 <strong>Active Viewers:</strong> {peers.size}
-              </p>
-              <p style={{ margin: '8px 0', fontSize: '1rem' }}>
-                🎥 <strong>Stream Quality:</strong> HD
-              </p>
-              <p style={{ margin: '8px 0', fontSize: '1rem' }}>
-                🔴 <strong>Recording:</strong> {isRecording ? 'Active' : 'Inactive'}
-              </p>
-              <p style={{ margin: '8px 0', fontSize: '1rem' }}>
-                🌐 <strong>Room ID:</strong> {roomId}
-              </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '15px' }}>
+              <button 
+                onClick={stopRecording}
+                disabled={!isRecording}
+                style={{
+                  padding: '12px',
+                  fontSize: '0.9rem',
+                  fontWeight: '600',
+                  backgroundColor: isRecording ? '#f44336' : '#666',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '12px',
+                  cursor: isRecording ? 'pointer' : 'not-allowed',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                {isRecording ? '⏹️ Stop Recording' : '⏸️ Recording Stopped'}
+              </button>
+              
+              <button 
+                onClick={fetchRecordings}
+                style={{
+                  padding: '12px',
+                  fontSize: '0.9rem',
+                  fontWeight: '600',
+                  backgroundColor: '#4CAF50',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '12px',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                🔄 Refresh Recordings
+              </button>
+            </div>
+            
+            <div style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.9rem' }}>
+              <p style={{ margin: '5px 0' }}>👥 Viewers: {peers.size}</p>
+              <p style={{ margin: '5px 0' }}>🔴 {isRecording ? 'Recording Active' : 'Recording Stopped'}</p>
+            </div>
+          </div>
+
+          {/* Recordings List - Compact */}
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.1)',
+            backdropFilter: 'blur(10px)',
+            borderRadius: '15px',
+            padding: '20px',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+            flex: 1,
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            <h3 style={{
+              color: 'white',
+              margin: '0 0 15px 0',
+              fontSize: '1.2rem',
+              fontWeight: '600'
+            }}>
+              📹 Recent Recordings
+            </h3>
+            
+            <div style={{ 
+              flex: 1,
+              overflowY: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px'
+            }}>
+              {recordings.length === 0 ? (
+                <div style={{
+                  textAlign: 'center',
+                  color: 'rgba(255, 255, 255, 0.6)',
+                  padding: '20px'
+                }}>
+                  <div style={{ fontSize: '1.5rem', marginBottom: '10px' }}>🎬</div>
+                  <p style={{ fontSize: '0.9rem', margin: '0' }}>No recordings yet</p>
+                </div>
+              ) : (
+                recordings.slice(0, 3).map(recording => (
+                  <div 
+                    key={recording.id} 
+                    style={{ 
+                      background: 'rgba(255, 255, 255, 0.1)',
+                      border: '1px solid rgba(255, 255, 255, 0.2)',
+                      padding: '12px', 
+                      borderRadius: '10px',
+                      fontSize: '0.8rem'
+                    }}
+                  >
+                    <div style={{ color: 'white', fontWeight: '600', marginBottom: '5px' }}>
+                      📼 {recording.filename.substring(0, 20)}...
+                    </div>
+                    <div style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.7rem' }}>
+                      {(recording.length / 1024 / 1024).toFixed(1)} MB
+                    </div>
+                    <button
+                      onClick={() => downloadRecording(recording)}
+                      style={{
+                        background: '#2196F3',
+                        color: 'white',
+                        border: 'none',
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontSize: '0.7rem',
+                        marginTop: '5px',
+                        width: '100%'
+                      }}
+                    >
+                      📥 Download
+                    </button>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Recordings Section */}
-      <div style={{
-        background: 'rgba(255, 255, 255, 0.1)',
-        backdropFilter: 'blur(10px)',
-        borderRadius: '20px',
-        padding: '30px',
-        marginTop: '30px',
-        border: '1px solid rgba(255, 255, 255, 0.2)',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
-        maxWidth: '1400px',
-        margin: '30px auto 0'
-      }}>
-        <h3 style={{
-          color: 'white',
-          margin: '0 0 25px 0',
-          fontSize: '2rem',
-          fontWeight: '600',
-          textAlign: 'center'
-        }}>
-          📹 Saved Recordings
-        </h3>
-        
-        {recordings.length === 0 ? (
-          <div style={{
-            textAlign: 'center',
-            color: 'rgba(255, 255, 255, 0.6)',
-            padding: '40px'
-          }}>
-            <div style={{ fontSize: '3rem', marginBottom: '15px' }}>🎬</div>
-            <p style={{ fontSize: '1.2rem', margin: '0' }}>No recordings yet</p>
-            <p style={{ fontSize: '1rem', margin: '10px 0 0 0' }}>Start streaming and stop recording to save your first video</p>
-          </div>
-        ) : (
-          <div style={{ 
-            display: 'grid', 
-            gap: '15px',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))'
-          }}>
-            {recordings.map(recording => (
-              <div 
-                key={recording.id} 
-                style={{ 
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  padding: '20px', 
-                  borderRadius: '15px',
-                  backdropFilter: 'blur(5px)',
-                  transition: 'all 0.3s ease'
-                }}
-                onMouseOver={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.15)'}
-                onMouseOut={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.1)'}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div style={{ flex: 1 }}>
-                    <h4 style={{ 
-                      color: 'white', 
-                      margin: '0 0 10px 0',
-                      fontSize: '1.1rem',
-                      fontWeight: '600'
-                    }}>
-                      📼 {recording.filename}
-                    </h4>
-                    <div style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.9rem' }}>
-                      <p style={{ margin: '5px 0' }}>
-                        🏠 <strong>Room:</strong> {recording.metadata?.roomId}
-                      </p>
-                      <p style={{ margin: '5px 0' }}>
-                        💾 <strong>Size:</strong> {(recording.length / 1024 / 1024).toFixed(2)} MB
-                      </p>
-                      <p style={{ margin: '5px 0' }}>
-                        📅 <strong>Date:</strong> {new Date(recording.uploadDate).toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => downloadRecording(recording)}
-                    style={{
-                      background: 'linear-gradient(45deg, #2196F3, #21CBF3)',
-                      color: 'white',
-                      border: 'none',
-                      padding: '12px 20px',
-                      borderRadius: '12px',
-                      cursor: 'pointer',
-                      fontSize: '0.9rem',
-                      fontWeight: '600',
-                      transition: 'all 0.3s ease',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px'
-                    }}
-                    onMouseOver={(e) => e.target.style.transform = 'translateY(-2px)'}
-                    onMouseOut={(e) => e.target.style.transform = 'translateY(0)'}
-                  >
-                    📥 Download
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       <style>
@@ -574,8 +512,8 @@ export default function Call({ roomId, isCaller }) {
             51%, 100% { opacity: 0.3; }
           }
           
-          @media (max-width: 768px) {
-            .main-grid {
+          @media (max-width: 1024px) {
+            .main-content {
               grid-template-columns: 1fr !important;
             }
           }
