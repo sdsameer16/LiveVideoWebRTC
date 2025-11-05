@@ -6,6 +6,8 @@ import multer from 'multer';
 import { MongoClient, GridFSBucket, ObjectId } from 'mongodb';
 import stream from 'stream';
 import dotenv from 'dotenv';
+import mongoose from 'mongoose';
+import parentsRouter from './routes/parents.js'; // example
 
 // Load environment variables from the server directory
 dotenv.config({ path: './.env' });
@@ -14,6 +16,7 @@ const server = http.createServer(app);
 const io = new IOServer(server, { cors: { origin: '*' } });
 app.use(cors());
 app.use(express.json());
+app.use('/api/parents', parentsRouter);
 
 // --- Multer for handling blob uploads ---
 const upload = multer({ storage: multer.memoryStorage() });
@@ -22,13 +25,8 @@ const upload = multer({ storage: multer.memoryStorage() });
 const activeRooms = new Map(); // roomId -> { caretaker: socketId, offer: data, parents: Set<socketId> }
 
 // --- MongoDB connection ---
-const mongoUrl = process.env.MONGODB_URI;
-
-if (!mongoUrl) {
-  console.error('❌ MONGODB_URI environment variable is not defined!');
-  console.error('Please check your .env file');
-  process.exit(1);
-}
+const mongoUrl = process.env.MONGODB_URI || 'mongodb+srv://sd_4333:sd_4@cluster0.bql5bnb.mongodb.net/babyblink?retryWrites=true&w=majority&appName=Cluster0';
+const mongoUri = process.env.MONGO_URI || 'mongodb+srv://sd_4333:sd_4@cluster0.bql5bnb.mongodb.net/babyblink?retryWrites=true&w=majority&appName=Cluster0';
 
 console.log('🔗 MongoDB URL:', mongoUrl.substring(0, 50) + '...');
 
@@ -43,18 +41,20 @@ async function connectDB() {
 }
 connectDB().catch(console.error);
 
-// --- Basic route ---
-app.get('/', (req, res) => res.send('Live Video Server is running'));
+// Connect mongoose using the server-side MONGO_URI (used for schemas/models)
+mongoose.connect(mongoUri, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log('✅ Mongoose connected to MongoDB'))
+  .catch(err => {
+    console.error('Failed to connect to MongoDB (mongoose)', err);
+    process.exit(1);
+  });
 
-// --- Signaling (WebRTC) ---
-io.on('connection', socket => {
-  console.log('🟢 Client connected:', socket.id);
+// Socket.IO connection and handlers
+io.on('connection', (socket) => {
+  console.log('🔵 Socket connected:', socket.id);
 
   socket.on('join-room', ({ room, role }) => {
     socket.join(room);
-    console.log(`👥 ${socket.id} joined room ${room} as ${role || 'unknown'}`);
-
-    // Initialize room if doesn't exist
     if (!activeRooms.has(room)) {
       activeRooms.set(room, { caretaker: null, offer: null, parents: new Set() });
     }
@@ -64,7 +64,7 @@ io.on('connection', socket => {
     if (role === 'caretaker') {
       roomData.caretaker = socket.id;
       console.log(`🎥 Caretaker ${socket.id} is now streaming in room ${room}`);
-      
+
       // Notify all parents that caretaker is available
       roomData.parents.forEach(parentId => {
         io.to(parentId).emit('caretaker-available', { caretakerId: socket.id });
@@ -72,7 +72,7 @@ io.on('connection', socket => {
     } else if (role === 'parent') {
       roomData.parents.add(socket.id);
       console.log(`👶 Parent ${socket.id} joined room ${room}`);
-      
+
       // If caretaker is streaming, send them the stored offer immediately
       if (roomData.caretaker && roomData.offer) {
         console.log(`🚀 Sending stored offer to parent ${socket.id}`);
@@ -89,15 +89,15 @@ io.on('connection', socket => {
 
   socket.on('signal', ({ to, data, room }) => {
     console.log(`📡 Signal from ${socket.id} to ${to || 'room'}, type: ${data.type}`);
-    
+
     if (room && activeRooms.has(room)) {
       const roomData = activeRooms.get(room);
-      
+
       // If this is an offer from caretaker, store it for future parents
       if (data.type === 'offer' && roomData.caretaker === socket.id) {
         roomData.offer = data;
         console.log(`💾 Stored caretaker offer for room ${room}`);
-        
+
         // Send offer to all current parents
         roomData.parents.forEach(parentId => {
           console.log(`📤 Sending offer to parent ${parentId}`);
@@ -116,16 +116,16 @@ io.on('connection', socket => {
   socket.on('leave-room', ({ room }) => {
     socket.leave(room);
     console.log(`👋 ${socket.id} left room ${room}`);
-    
+
     if (activeRooms.has(room)) {
       const roomData = activeRooms.get(room);
-      
+
       if (roomData.caretaker === socket.id) {
         // Caretaker left - clear the room
         roomData.caretaker = null;
         roomData.offer = null;
         console.log(`🔴 Caretaker left room ${room} - stream ended`);
-        
+
         // Notify all parents that stream ended
         roomData.parents.forEach(parentId => {
           io.to(parentId).emit('stream-ended');
@@ -134,20 +134,20 @@ io.on('connection', socket => {
         // Parent left
         roomData.parents.delete(socket.id);
       }
-      
+
       // Clean up empty rooms
       if (!roomData.caretaker && roomData.parents.size === 0) {
         activeRooms.delete(room);
         console.log(`🗑️ Cleaned up empty room ${room}`);
       }
     }
-    
+
     socket.to(room).emit('peer-left', { id: socket.id });
   });
 
   socket.on('disconnect', () => {
     console.log('🔴 Disconnected:', socket.id);
-    
+
     // Clean up from all rooms
     for (const [roomId, roomData] of activeRooms.entries()) {
       if (roomData.caretaker === socket.id) {
@@ -159,7 +159,7 @@ io.on('connection', socket => {
       } else {
         roomData.parents.delete(socket.id);
       }
-      
+
       // Clean up empty rooms
       if (!roomData.caretaker && roomData.parents.size === 0) {
         activeRooms.delete(roomId);
@@ -245,6 +245,37 @@ app.get('/api/recordings', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).send('Error fetching recordings');
+  }
+});
+
+// --- API for chat messages ---
+app.get('/messages/:parentId', async (req, res) => {
+  try {
+    const { parentId } = req.params;
+    const messages = await db.collection('messages').find({ parentId }).sort({ timestamp: 1 }).toArray();
+    res.json(messages);
+  } catch (err) {
+    console.error('Error fetching messages:', err);
+    res.status(500).json({ error: 'Failed to fetch messages' });
+  }
+});
+
+// --- API for saving chat logs ---
+app.post('/save-chat-logs', async (req, res) => {
+  try {
+    const { logs } = req.body;
+    if (!logs || !Array.isArray(logs)) {
+      return res.status(400).json({ error: 'Invalid logs data' });
+    }
+    
+    // Save logs to MongoDB
+    const result = await db.collection('messages').insertMany(logs);
+    console.log(`Saved ${result.insertedCount} chat logs to database`);
+    
+    res.json({ success: true, savedCount: result.insertedCount });
+  } catch (err) {
+    console.error('Error saving chat logs:', err);
+    res.status(500).json({ error: 'Failed to save chat logs' });
   }
 });
 

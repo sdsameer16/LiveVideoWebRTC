@@ -4,7 +4,8 @@ import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-const socket = io("https://livechatapp-1-7362.onrender.com");
+const API_BASE = (import.meta && import.meta.env && import.meta.env.VITE_API_BASE) || "https://livechatapp-1-7362.onrender.com";
+const socket = io(API_BASE);
 
 const CaretakerChat = () => {
   const [parents, setParents] = useState([]);
@@ -13,13 +14,18 @@ const CaretakerChat = () => {
   const [message, setMessage] = useState("");
   const [typingParent, setTypingParent] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showEmergency, setShowEmergency] = useState(false);
+  const [emergencyLoading, setEmergencyLoading] = useState(false);
+  const [emergencyError, setEmergencyError] = useState("");
+  const [emergencyInfo, setEmergencyInfo] = useState(null);
   const messagesEndRef = useRef(null);
+  const notificationRef = useRef(null);
 
   // Fetch parents when component mounts
   useEffect(() => {
     const fetchParents = async () => {
       try {
-        const res = await axios.get("https://livechatapp-1-7362.onrender.com/parents");
+          const res = await axios.get(`${API_BASE}/api/parents/all`);
         setParents(res.data);
         console.log("Parents loaded:", res.data);
       } catch (error) {
@@ -92,9 +98,17 @@ const CaretakerChat = () => {
 
   const playNotification = () => {
     try {
-      new Audio("/notification.mp3").play().catch(err => {
-        console.log("Audio play prevented:", err);
-      });
+      if (notificationRef.current) {
+        notificationRef.current.currentTime = 0;
+        notificationRef.current.play().catch((err) => {
+          console.log("Audio play prevented:", err);
+        });
+      } else {
+        // fallback: try creating a fresh Audio instance from the public asset
+        new Audio('/notification.mp3').play().catch((err) => {
+          console.log("Audio play prevented (fallback):", err);
+        });
+      }
     } catch (error) {
       console.log("Audio error:", error);
     }
@@ -102,11 +116,30 @@ const CaretakerChat = () => {
 
   const refreshParents = async () => {
     try {
-      const res = await axios.get("https://livechatapp-1-7362.onrender.com/parents");
+        const res = await axios.get(`${API_BASE}/parents`);
       setParents(res.data);
       console.log("Parents refreshed:", res.data);
     } catch (error) {
       console.error("Error refreshing parents:", error);
+    }
+  };
+
+  // Fetch emergency info for a parent from backend
+  const fetchEmergencyInfo = async (parentId) => {
+    setEmergencyLoading(true);
+    setEmergencyError("");
+    setEmergencyInfo(null);
+    setShowEmergency(true);
+
+    try {
+      // Use the deployed emergency info service (do not modify server)
+      const res = await axios.get(`${EMERGENCY_BASE}/api/parents/parent-info/${parentId}`);
+      setEmergencyInfo(res.data);
+    } catch (err) {
+      console.error('Error fetching emergency info:', err);
+      setEmergencyError('Failed to load emergency information');
+    } finally {
+      setEmergencyLoading(false);
     }
   };
 
@@ -115,7 +148,7 @@ const CaretakerChat = () => {
 
     try {
       // First try to get messages from database
-      const res = await axios.get(`https://livechatapp-1-7362.onrender.com/messages/${parentId}`);
+        const res = await axios.get(`${API_BASE}/messages/${parentId}`);
       let chatMessages = res.data;
 
       // If no messages in database, check localStorage for accumulated logs
@@ -180,7 +213,7 @@ const CaretakerChat = () => {
       }));
 
       // Save to MongoDB via backend
-      await axios.post("https://livechatapp-1-7362.onrender.com/save-chat-logs", { logs: mongoDBLogs });
+        await axios.post(`${API_BASE}/save-chat-logs`, { logs: mongoDBLogs });
 
       // Create downloadable log file
       const logText = allLogs.map(log => {
@@ -208,6 +241,33 @@ const CaretakerChat = () => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chat]);
+
+  // Initialize notification audio once
+  useEffect(() => {
+    try {
+      // Use the public/ notification file served at the app root
+      notificationRef.current = new Audio('/notification.mp3');
+      notificationRef.current.preload = 'auto';
+      // optional: lower the default volume
+      notificationRef.current.volume = 0.9;
+    } catch (err) {
+      console.log('Failed to initialize notification audio:', err);
+      notificationRef.current = null;
+    }
+    // expose a quick test helper in the window for debugging in the browser console
+    try {
+      // eslint-disable-next-line no-undef
+      window.playNotificationTest = () => {
+        if (notificationRef.current) {
+          notificationRef.current.currentTime = 0;
+          return notificationRef.current.play().catch(e => console.log('Play prevented (test):', e));
+        }
+        return Promise.resolve();
+      };
+    } catch (e) {
+      // ignore
+    }
+  }, []);
 
   return (
     <div style={{ width: "100%", height: "100vh", padding: 15, fontFamily: "Poppins", display: "flex", flexDirection: "column" }}>
@@ -262,10 +322,33 @@ const CaretakerChat = () => {
                     padding: "4px 8px",
                     borderRadius: 6,
                     background: p === activeParent ? "#e3f2fd" : "transparent",
-                    border: p === activeParent ? "1px solid #2196F3" : "1px solid transparent"
+                    border: p === activeParent ? "1px solid #2196F3" : "1px solid transparent",
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 8
                   }}
                 >
-                  {p} {typingParent === p && <span style={{ color: "green" }}>✍️</span>}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
+                    <div style={{ flex: 1 }}>{p} {typingParent === p && <span style={{ color: "green" }}>✍️</span>}</div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, marginLeft: 8 }}>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); fetchEmergencyInfo(p); }}
+                      style={{
+                        padding: '6px 10px',
+                        borderRadius: 8,
+                        background: '#ff7043',
+                        color: 'white',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: 12
+                      }}
+                      title="Show Emergency Info"
+                    >
+                      🚨
+                    </button>
+                  </div>
                 </div>
               ))
             )}
@@ -350,6 +433,58 @@ const CaretakerChat = () => {
         </div>
       </div>
       <ToastContainer position="bottom-right" />
+      {/* Emergency Info Modal */}
+      {showEmergency && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: 'fixed',
+            left: 0,
+            top: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999
+          }}
+          onClick={() => setShowEmergency(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: 360,
+              maxWidth: '90%',
+              background: 'white',
+              padding: 16,
+              borderRadius: 8,
+              boxShadow: '0 8px 24px rgba(0,0,0,0.2)'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <strong>Emergency Information</strong>
+              <button onClick={() => setShowEmergency(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 18 }}>✖️</button>
+            </div>
+
+            {emergencyLoading ? (
+              <div>Loading...</div>
+            ) : emergencyError ? (
+              <div style={{ color: 'red' }}>{emergencyError}</div>
+            ) : emergencyInfo ? (
+              <div style={{ fontSize: 13 }}>
+                <div style={{ marginBottom: 6 }}><strong>Parent:</strong> {emergencyInfo.parentId || '—'}</div>
+                <div style={{ marginBottom: 6 }}><strong>Pediatrician:</strong> {emergencyInfo.pediatrician || '—'}</div>
+                <div style={{ marginBottom: 6 }}><strong>Hospital:</strong> {emergencyInfo.hospital || '—'}</div>
+                <div style={{ marginBottom: 6 }}><strong>Emergency Number:</strong> {emergencyInfo.emergencyNumber || '—'}</div>
+              </div>
+            ) : (
+              <div>No emergency information available.</div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
